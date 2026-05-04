@@ -6,6 +6,24 @@
 - GitHub auth for git/API is available via env vars: `GITHUB_USER`, `GITHUB_TOKEN` (PAT). Do not hardcode or commit tokens.
 - For authenticated git over HTTPS in automation, use: `https://x-access-token:${GITHUB_TOKEN}@github.com/<owner>/<repo>.git`
 
+## Deployment Split
+
+- `ssh codex-usage` is the live host for both the stable and dev `codex-lb` runtimes.
+- Production lives at `/opt/codex-lb` and runs the `codex-lb` container from `ghcr.io/soju06/codex-lb:latest`.
+- Production follows the official upstream repo. Do not edit, rebuild, restart, or otherwise mutate production when working on branch changes from this checkout.
+- Development lives at `/opt/codex-lb-dev` and uses the separate `codex-lb-dev` container plus the source checkout at `/opt/codex-lb-dev/source/codex-lb`.
+- Standard dev deploy sequence from this workstation:
+  - `git push origin <branch>`
+  - `ssh codex-usage 'python3 /opt/codex-lb-dev/bin/manage.py rebuild --branch <branch>'`
+  - `ssh codex-usage 'docker compose --project-directory /opt/codex-lb --file /opt/codex-lb/docker-compose.yml --profile dev ps'`
+- If `manage.py rebuild` fails with a `codex-lb-dev` container-name conflict, clean up only the dev container and retry:
+  - `ssh codex-usage 'docker rm -f codex-lb-dev && docker compose --project-directory /opt/codex-lb --file /opt/codex-lb/docker-compose.yml --profile dev up -d codex-lb-dev'`
+- Verification commands:
+  - `ssh codex-usage 'python3 /opt/codex-lb-dev/bin/manage.py status'`
+  - `ssh codex-usage 'docker compose --project-directory /opt/codex-lb --file /opt/codex-lb/docker-compose.yml --profile dev ps'`
+- Dev admin URL: `https://codex-lb-dev-admin.nosslin.dk/`
+- Prod admin URL: `https://codex-lb-admin.nosslin.dk/`
+
 ## Code Conventions
 
 The `/project-conventions` skill is auto-activated on code edits (PreToolUse guard).
