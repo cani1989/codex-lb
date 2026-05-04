@@ -7,3 +7,8 @@ script = '''
 uv sync
 cd frontend && bun install
 '''
+
+[[actions]]
+name = "run"
+icon = "run"
+command = "docker compose watch"
